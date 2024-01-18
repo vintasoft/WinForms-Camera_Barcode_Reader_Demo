@@ -8,12 +8,14 @@ using System.Windows.Forms;
 using Vintasoft.Barcode;
 using Vintasoft.Barcode.BarcodeInfo;
 using Vintasoft.Barcode.SymbologySubsets;
+
 using Vintasoft.Imaging;
+using Vintasoft.Imaging.Drawing;
 using Vintasoft.Imaging.Media;
 
 using DemosCommonCode;
 using DemosCommonCode.Imaging.Codecs;
-using Vintasoft.Imaging.Drawing;
+using System.Threading;
 
 namespace CameraBarcodeReaderDemo
 {
@@ -26,29 +28,14 @@ namespace CameraBarcodeReaderDemo
         #region Fields
 
         /// <summary>
-        /// Current capture device.
+        /// The imaging camera barcode scanner.
         /// </summary>
-        ImageCaptureDevice _captureDevice;
-
-        /// <summary>
-        /// Capture devices monitor.
-        /// </summary>
-        ImageCaptureDevicesMonitor _captureDevicesMonitor;
+        ImagingCameraBarcodeScanner _imagingCameraBarcodeScanner;
 
         /// <summary>
         /// ImageCaptureSource for video preview.
         /// </summary>
         ImageCaptureSource _previewImageCaptureSource;
-
-        /// <summary>
-        /// ImageCaptureSource for barcode recognition.
-        /// </summary>
-        ImageCaptureSource _barcodeReaderImageCaptureSource;
-
-        /// <summary>
-        /// Barcode reader.
-        /// </summary>
-        BarcodeReader _barcodeReader;
 
         /// <summary>
         /// The source recognized image.
@@ -77,29 +64,31 @@ namespace CameraBarcodeReaderDemo
             _previewImageCaptureSource.CaptureCompleted +=
                 new EventHandler<ImageCaptureCompletedEventArgs>(PreviewImageCaptureSource_CaptureCompleted);
 
-            _barcodeReaderImageCaptureSource = new ImageCaptureSource();
-            _barcodeReaderImageCaptureSource.CaptureCompleted +=
-                new EventHandler<ImageCaptureCompletedEventArgs>(BarcodeReaderImageCaptureSource_CaptureCompleted);
+            _imagingCameraBarcodeScanner = new ImagingCameraBarcodeScanner();
+            _imagingCameraBarcodeScanner.CaptureDevicesChanged += ImagingCameraBarcodeScanner_CaptureDevicesChanged;
+            _imagingCameraBarcodeScanner.ScanningStart += ImagingCameraBarcodeScanner_ScanningStart;
+            _imagingCameraBarcodeScanner.ScanningStop += ImagingCameraBarcodeScanner_ScanningStop;
+            _imagingCameraBarcodeScanner.ScanningException += ImagingCameraBarcodeScanner_ScanningException;
+            _imagingCameraBarcodeScanner.BarcodeScanner.FrameScanFinished += BarcodeScanner_FrameScanFinished;
 
-            _captureDevicesMonitor = new ImageCaptureDevicesMonitor();
-            _captureDevicesMonitor.CaptureDevicesChanged +=
-                new EventHandler<ImageCaptureDevicesChangedEventArgs>(CaptureDevicesMonitor_CaptureDevicesChanged);
 
             CodecsFileFilters.SetSaveFileDialogFilter(saveRecognizedImageDialog, false, false);
 
             if (!DesignMode)
             {
-                _captureDevicesMonitor.Start();
-
                 InitCamerasComboBox();
-                InitBarcodeReader();
+                InitBarcodeScannerUI();
 
                 UpdateUI();
             }
 
-            recognitionTypeComboBox.SelectedIndex = 0;
+            recognitionTypeComboBox.Items.Add(CameraBarcodeScannerMode.Adaptive);
+            recognitionTypeComboBox.Items.Add(CameraBarcodeScannerMode.Balanced);
+            recognitionTypeComboBox.Items.Add(CameraBarcodeScannerMode.BestQuality);
+            recognitionTypeComboBox.SelectedIndex = 0;            
         }
 
+      
         #endregion
 
 
@@ -142,6 +131,21 @@ namespace CameraBarcodeReaderDemo
             }
         }
 
+        /// <summary>
+        /// Gets or sets the capture device.
+        /// </summary>
+        public ImageCaptureDevice CaptureDevice
+        {
+            get
+            {
+                return _imagingCameraBarcodeScanner.CaptureDevice;
+            }
+            set
+            {
+                _imagingCameraBarcodeScanner.CaptureDevice = value;
+            }
+        }
+
         #endregion
 
 
@@ -157,7 +161,7 @@ namespace CameraBarcodeReaderDemo
         /// </summary>
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            StopBarcodeReading();
+            _imagingCameraBarcodeScanner.StopScanning();
             StopCapturing();
             if (_recognizedSourceImage != null)
                 _recognizedSourceImage.Dispose();
@@ -230,7 +234,7 @@ namespace CameraBarcodeReaderDemo
         /// </summary>
         private void stopImageCapturingButton_Click(object sender, EventArgs e)
         {
-            StopBarcodeReading();
+            _imagingCameraBarcodeScanner.StopScanning();
             StopCapturing();
 
             UpdateUI();
@@ -243,8 +247,8 @@ namespace CameraBarcodeReaderDemo
         {
             try
             {
-                _captureDevice = (ImageCaptureDevice)camerasComboBox.SelectedItem;
-                _captureDevice.ShowPropertiesDialog();
+                _imagingCameraBarcodeScanner.CaptureDevice = (ImageCaptureDevice)camerasComboBox.SelectedItem;
+                _imagingCameraBarcodeScanner.CaptureDevice.ShowPropertiesDialog();
             }
             catch (Exception ex)
             {
@@ -262,23 +266,15 @@ namespace CameraBarcodeReaderDemo
         /// </summary>
         private void recognitionTypeComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (recognitionTypeComboBox.SelectedIndex == 0)
+            _imagingCameraBarcodeScanner.BarcodeScanner.RecognitionMode = (CameraBarcodeScannerMode)recognitionTypeComboBox.SelectedItem;
+
+            if (_imagingCameraBarcodeScanner.BarcodeScanner.RecognitionMode == CameraBarcodeScannerMode.BestQuality)
             {
-                // automatic recognition
-                _barcodeReader.Settings.AutomaticRecognition = true;
-            }
-            else if (recognitionTypeComboBox.SelectedIndex == 1)
-            {
-                // threshold (auto)
-                _barcodeReader.Settings.AutomaticRecognition = false;
-                _barcodeReader.Settings.ThresholdMode = ThresholdMode.Automatic;
+                _imagingCameraBarcodeScanner.BarcodeScanner.ScannerSettings.AdaptiveBinarizationType = AdaptiveBinarizationType.HighQuality;                    
             }
             else
             {
-                // threshold
-                _barcodeReader.Settings.AutomaticRecognition = false;
-                _barcodeReader.Settings.ThresholdMode = ThresholdMode.Manual;
-                _barcodeReader.Settings.Threshold = 50 + (recognitionTypeComboBox.SelectedIndex - 1) * 50;
+                _imagingCameraBarcodeScanner.BarcodeScanner.ScannerSettings.AdaptiveBinarizationType = AdaptiveBinarizationType.Fast;
             }
         }
 
@@ -290,16 +286,16 @@ namespace CameraBarcodeReaderDemo
             if (scanBarcodeTypeComboBox.SelectedItem == null)
                 return;
 
-            _barcodeReader.Settings.ScanBarcodeTypes = BarcodeType.None;
+            _imagingCameraBarcodeScanner.BarcodeScanner.ScannerSettings.ScanBarcodeTypes = BarcodeType.None;
 
             if (scanBarcodeTypeComboBox.SelectedItem is BarcodeSymbologySubset)
             {
-                _barcodeReader.Settings.ScanBarcodeSubsets.Clear();
-                _barcodeReader.Settings.ScanBarcodeSubsets.Add((BarcodeSymbologySubset)scanBarcodeTypeComboBox.SelectedItem);
+                _imagingCameraBarcodeScanner.BarcodeScanner.ScannerSettings.ScanBarcodeSubsets.Clear();
+                _imagingCameraBarcodeScanner.BarcodeScanner.ScannerSettings.ScanBarcodeSubsets.Add((BarcodeSymbologySubset)scanBarcodeTypeComboBox.SelectedItem);
             }
             else
             {
-                _barcodeReader.Settings.ScanBarcodeTypes = (BarcodeType)scanBarcodeTypeComboBox.SelectedItem;
+                _imagingCameraBarcodeScanner.BarcodeScanner.ScannerSettings.ScanBarcodeTypes = (BarcodeType)scanBarcodeTypeComboBox.SelectedItem;
             }
         }
 
@@ -308,7 +304,7 @@ namespace CameraBarcodeReaderDemo
         /// </summary>
         private void startBarcodeReadingButton_Click(object sender, EventArgs e)
         {
-            StartBarcodeReading();
+            _imagingCameraBarcodeScanner.StartScanning();
 
             UpdateUI();
         }
@@ -318,7 +314,7 @@ namespace CameraBarcodeReaderDemo
         /// </summary>
         private void stopBarcodeReadingButton_Click(object sender, EventArgs e)
         {
-            StopBarcodeReading();
+            _imagingCameraBarcodeScanner.StopScanning();
 
             UpdateUI();
         }
@@ -354,14 +350,14 @@ namespace CameraBarcodeReaderDemo
         private void UpdateUI()
         {
             bool isCapturingStarted = _previewImageCaptureSource.State != ImageCaptureState.Stopped;
-            startImageCapturingButton.Enabled = _captureDevice != null && !isCapturingStarted;
-            startImageCapturingToolStripMenuItem.Enabled = _captureDevice != null && !isCapturingStarted;
-            stopImageCapturingButton.Enabled = _captureDevice != null && isCapturingStarted;
-            stopImageCapturingToolStripMenuItem.Enabled = _captureDevice != null && isCapturingStarted;
-            configureCameraButton.Enabled = _captureDevice != null;
-            configureCameraToolStripMenuItem.Enabled = _captureDevice != null;
+            startImageCapturingButton.Enabled = CaptureDevice != null && !isCapturingStarted;
+            startImageCapturingToolStripMenuItem.Enabled = CaptureDevice != null && !isCapturingStarted;
+            stopImageCapturingButton.Enabled = CaptureDevice != null && isCapturingStarted;
+            stopImageCapturingToolStripMenuItem.Enabled = CaptureDevice != null && isCapturingStarted;
+            configureCameraButton.Enabled = CaptureDevice != null;
+            configureCameraToolStripMenuItem.Enabled = CaptureDevice != null;
 
-            bool isBarcodeReadingStarted = _barcodeReaderImageCaptureSource.State != ImageCaptureState.Stopped;
+            bool isBarcodeReadingStarted = _imagingCameraBarcodeScanner.IsStarted;
             startBarcodeReadingButton.Enabled = isCapturingStarted && !isBarcodeReadingStarted;
             if (!isBarcodeReadingStarted)
                 startBarcodeReadingButton.Text = "Start Barcode Reading";
@@ -370,7 +366,7 @@ namespace CameraBarcodeReaderDemo
             stopBarcodeReadingToolStripMenuItem.Enabled = isCapturingStarted && isBarcodeReadingStarted;
 
             camerasComboBox.Enabled = !isCapturingStarted;
-            supportedFormatsComboBox.Enabled = _captureDevice != null && !isCapturingStarted;
+            supportedFormatsComboBox.Enabled = CaptureDevice != null && !isCapturingStarted;
         }
 
         #endregion
@@ -392,38 +388,31 @@ namespace CameraBarcodeReaderDemo
                 camerasComboBox.Items.Add(device);
             }
 
-            if (captureDevices.Contains(_captureDevice))
+            if (captureDevices.Contains(CaptureDevice))
             {
-                camerasComboBox.SelectedItem = _captureDevice;
+                camerasComboBox.SelectedItem = CaptureDevice;
             }
             else
             {
-                _captureDevice = null;
+                CaptureDevice = null;
 
                 if (camerasComboBox.Items.Count > 0)
                 {
-                    _captureDevice = captureDevices[0];
-                    camerasComboBox.SelectedItem = _captureDevice;
+                    CaptureDevice = captureDevices[0];
+                    camerasComboBox.SelectedItem = CaptureDevice;
                 }
             }
+
             UpdateSupportedImageCaptureFormats();
         }
 
         /// <summary>
         /// Inits the barcode reader.
         /// </summary>
-        private void InitBarcodeReader()
+        private void InitBarcodeScannerUI()
         {
-            _barcodeReader = new BarcodeReader();
-            _barcodeReader.Settings.MaximumThreadCount = Environment.ProcessorCount;
-            _barcodeReader.Settings.ScanDirection = ScanDirection.Horizontal | ScanDirection.Vertical;
-            _barcodeReader.Settings.ScanBarcodeTypes = BarcodeType.Aztec | BarcodeType.EAN13 | BarcodeType.Code39 | BarcodeType.Code128 | BarcodeType.DataMatrix | BarcodeType.QR;
-            _barcodeReader.Settings.MinConfidence = 95;
-            _barcodeReader.Settings.AdaptiveBinarizationStep = 6;
-
-            _barcodeReader.Settings.AutomaticRecognition = true;
-
-            scanBarcodeTypeComboBox.Items.Add(BarcodeType.Aztec | BarcodeType.DataMatrix | BarcodeType.QR | BarcodeType.PDF417 | BarcodeType.PDF417Compact);
+            scanBarcodeTypeComboBox.Items.Add(BarcodeType.Aztec | BarcodeType.DataMatrix | BarcodeType.QR | BarcodeType.PDF417 | BarcodeType.Code39 | BarcodeType.Code128 | BarcodeType.EAN13 | BarcodeType.UPCA | BarcodeType.UPCE);
+            scanBarcodeTypeComboBox.Items.Add(BarcodeType.Aztec | BarcodeType.DataMatrix | BarcodeType.QR | BarcodeType.PDF417);
             scanBarcodeTypeComboBox.Items.Add(BarcodeType.Code39 | BarcodeType.Code128 | BarcodeType.EAN13 | BarcodeType.UPCA | BarcodeType.UPCE);
             scanBarcodeTypeComboBox.Items.Add(BarcodeType.Aztec);
             scanBarcodeTypeComboBox.Items.Add(BarcodeType.DataMatrix);
@@ -442,7 +431,6 @@ namespace CameraBarcodeReaderDemo
             scanBarcodeTypeComboBox.Items.Add(BarcodeType.Code128);
             scanBarcodeTypeComboBox.Items.Add(BarcodeType.Code39);
             scanBarcodeTypeComboBox.Items.Add(BarcodeType.Code93);
-            scanBarcodeTypeComboBox.Items.Add(BarcodeType.EAN13 | BarcodeType.EAN8 | BarcodeType.UPCA | BarcodeType.UPCE);
             scanBarcodeTypeComboBox.Items.Add(BarcodeType.Interleaved2of5);
             scanBarcodeTypeComboBox.Items.Add(BarcodeType.Standard2of5);
             scanBarcodeTypeComboBox.Items.Add(BarcodeType.MSI);
@@ -509,43 +497,7 @@ namespace CameraBarcodeReaderDemo
             scanBarcodeTypeComboBox.Items.Clear();
             scanBarcodeTypeComboBox.Items.AddRange(barcodes);
 
-            scanBarcodeTypeComboBox.SelectedItem = BarcodeType.Code39 | BarcodeType.Code128 | BarcodeType.EAN13 | BarcodeType.UPCA | BarcodeType.UPCE;
-        }
-
-        #endregion
-
-
-        #region Capture devices monitor
-
-        /// <summary>
-        /// Capture device is changed.
-        /// </summary>
-        private void CaptureDevicesMonitor_CaptureDevicesChanged(object sender, ImageCaptureDevicesChangedEventArgs e)
-        {
-            if (InvokeRequired)
-            {
-                Invoke(new CaptureDevicesMonitor_CaptureDevicesChangedDelegate(CaptureDevicesMonitor_CaptureDevicesChanged), sender, e);
-            }
-            else
-            {
-                List<ImageCaptureDevice> removedCameras = new List<ImageCaptureDevice>(e.RemovedDevices);
-
-                if (removedCameras.Contains(_captureDevice))
-                {
-                    StopBarcodeReading();
-                    StopCapturing();
-                }
-
-                // add messages about changes
-                foreach (ImageCaptureDevice removedDevice in e.RemovedDevices)
-                    captureDeviceMonitorTextBox.AppendText(string.Format("Device '{0}' is disconnected.{1}", removedDevice.FriendlyName, Environment.NewLine));
-                foreach (ImageCaptureDevice addedDevice in e.AddedDevices)
-                    captureDeviceMonitorTextBox.AppendText(string.Format("Device '{0}' is connected.{1}", addedDevice.FriendlyName, Environment.NewLine));
-
-                InitCamerasComboBox();
-
-                UpdateUI();
-            }
+            scanBarcodeTypeComboBox.SelectedItem = BarcodeType.Aztec | BarcodeType.DataMatrix | BarcodeType.QR | BarcodeType.PDF417 | BarcodeType.Code39 | BarcodeType.Code128 | BarcodeType.EAN13 | BarcodeType.UPCA | BarcodeType.UPCE;
         }
 
         #endregion
@@ -560,26 +512,11 @@ namespace CameraBarcodeReaderDemo
         {
             supportedFormatsComboBox.Items.Clear();
             ImageCaptureDevice device = (ImageCaptureDevice)camerasComboBox.SelectedItem;
-            if (device != null && device.SupportedFormats != null)
+            ReadOnlyCollection<ImageCaptureFormat> formats = _imagingCameraBarcodeScanner.CaptureFormats;
+            if (device != null && formats != null)
             {
-                List<uint> imageCaptureFormatSizes = new List<uint>();
-                for (int i = 0; i < device.SupportedFormats.Count; i++)
-                {
-                    // if format has bit depth less or equal than 12 bit
-                    if (device.SupportedFormats[i].BitsPerPixel <= 12)
-                    {
-                        // ignore formats with bit depth less or equal than 12 bit because they may cause issues on Windows 8
-                        continue;
-                    }
-
-                    uint imageCaptureFormatSize = (uint)(device.SupportedFormats[i].Width | (device.SupportedFormats[i].Height << 16));
-                    if (!imageCaptureFormatSizes.Contains(imageCaptureFormatSize))
-                    {
-                        imageCaptureFormatSizes.Add(imageCaptureFormatSize);
-
-                        supportedFormatsComboBox.Items.Add(device.SupportedFormats[i]);
-                    }
-                }
+                foreach (ImageCaptureFormat format in formats)
+                    supportedFormatsComboBox.Items.Add(format);
 
                 if (device.DesiredFormat != null)
                     supportedFormatsComboBox.SelectedItem = device.DesiredFormat;
@@ -595,20 +532,6 @@ namespace CameraBarcodeReaderDemo
         {
             VintasoftImage image = e.GetCapturedImage();
 
-            // if automatic recognition is not used then
-            if (!_barcodeReader.Settings.AutomaticRecognition &&
-                _barcodeReaderImageCaptureSource.State == ImageCaptureState.Started)
-            {
-                // process barcode image
-                using (BarcodeReader tempBarcodeReader = new BarcodeReader())
-                {
-                    tempBarcodeReader.Settings = _barcodeReader.Settings.Clone();
-                    VintasoftImage processedImage = new VintasoftImage(tempBarcodeReader.ProcessImage(image.GetAsVintasoftBitmap()), true);
-                    image.Dispose();
-                    image = processedImage;
-                }
-            }
-
             PreviewImage = image;
 
             if (_previewImageCaptureSource.State == ImageCaptureState.Started)
@@ -620,13 +543,13 @@ namespace CameraBarcodeReaderDemo
         /// </summary>
         private void StartCapturing()
         {
-            _captureDevice = (ImageCaptureDevice)camerasComboBox.SelectedItem;
-            _captureDevice.DesiredFormat = (ImageCaptureFormat)supportedFormatsComboBox.SelectedItem;
-            _previewImageCaptureSource.CaptureDevice = _captureDevice;
+            CaptureDevice = (ImageCaptureDevice)camerasComboBox.SelectedItem;
+            CaptureDevice.DesiredFormat = (ImageCaptureFormat)supportedFormatsComboBox.SelectedItem;
+            _previewImageCaptureSource.CaptureDevice = CaptureDevice;
             _previewImageCaptureSource.Start();
             _previewImageCaptureSource.CaptureAsync();
 
-            captureDeviceMonitorTextBox.AppendText(string.Format("Image capturing started ({0}).", _captureDevice.FriendlyName));
+            captureDeviceMonitorTextBox.AppendText(string.Format("Image capturing started ({0}).", CaptureDevice.FriendlyName));
             captureDeviceMonitorTextBox.AppendText(Environment.NewLine);
         }
 
@@ -639,7 +562,7 @@ namespace CameraBarcodeReaderDemo
             {
                 _previewImageCaptureSource.Stop();
 
-                captureDeviceMonitorTextBox.AppendText(string.Format("Image capturing stopped ({0}).", _captureDevice.FriendlyName));
+                captureDeviceMonitorTextBox.AppendText(string.Format("Image capturing stopped ({0}).", CaptureDevice.FriendlyName));
                 captureDeviceMonitorTextBox.AppendText(Environment.NewLine);
             }
         }
@@ -647,76 +570,90 @@ namespace CameraBarcodeReaderDemo
         #endregion
 
 
-        #region Read barcodes
+        #region Barcode scanner
 
-        /// <summary>
-        /// Starts barcode reading from camera.
-        /// </summary>
-        private void StartBarcodeReading()
+        private void ImagingCameraBarcodeScanner_ScanningException(object sender, ExceptionEventArgs e)
         {
-            _barcodeReaderImageCaptureSource.CaptureDevice = _captureDevice;
-            _barcodeReaderImageCaptureSource.Start();
-            _barcodeReaderImageCaptureSource.CaptureAsync();
+            ShowErrorMessageAsync(e.Exception.ToString());
+        }
 
+        private void ImagingCameraBarcodeScanner_ScanningStart(object sender, EventArgs e)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new ThreadStart(OnBarcodeRecognitionStarted));
+            }
+            else
+            {
+                OnBarcodeRecognitionStarted();
+            }
+        }
+        private void OnBarcodeRecognitionStarted()
+        {
             readerResultsTextBox.AppendText("Barcode recognition started.");
             readerResultsTextBox.AppendText(Environment.NewLine);
         }
 
-        /// <summary>
-        /// Stops barcode reading from camera.
-        /// </summary>
-        private void StopBarcodeReading()
+        private void ImagingCameraBarcodeScanner_ScanningStop(object sender, EventArgs e)
         {
-            if (_barcodeReaderImageCaptureSource.State != ImageCaptureState.Stopped)
+            if (InvokeRequired)
             {
-                _barcodeReaderImageCaptureSource.Stop();
-                readerResultsTextBox.AppendText("Barcode recognition stopped.");
-                readerResultsTextBox.AppendText(Environment.NewLine);
-
+                Invoke(new ThreadStart(OnBarcodeRecognitionStopped));
+            }
+            else
+            {
+                OnBarcodeRecognitionStopped();
             }
         }
 
-        /// <summary>
-        /// Recognizes the barcode on captured image and initializes new image capture request.
-        /// </summary>
-        private void BarcodeReaderImageCaptureSource_CaptureCompleted(object sender, ImageCaptureCompletedEventArgs e)
+        private void OnBarcodeRecognitionStopped()
         {
-            try
+            readerResultsTextBox.AppendText("Barcode recognition stopped.");
+            readerResultsTextBox.AppendText(Environment.NewLine);
+        }
+
+        /// <summary>
+        /// Handles the CaptureDevicesChanged event of ImagingCameraBarcodeScanner object.
+        /// </summary>
+        private void ImagingCameraBarcodeScanner_CaptureDevicesChanged(object sender, ImageCaptureDevicesChangedEventArgs e)
+        {
+            if (InvokeRequired)
             {
-                IBarcodeInfo[] barcodeInfo;
-
-                // gets captured image
-                VintasoftImage image = e.GetCapturedImage();
-
-                // read barcodes from image
-                using (VintasoftBitmap bitmap = image.GetAsVintasoftBitmap())
-                    barcodeInfo = _barcodeReader.ReadBarcodes(bitmap);
-
-                // if barcode reading started then
-                if (_barcodeReaderImageCaptureSource.State == ImageCaptureState.Started)
-                {
-                    // if barcode recognized then
-                    if (barcodeInfo.Length > 0)
-                    {
-                        // show reader results
-                        Invoke(new ShowRecognitionResultsDelegate(ShowRecognitionResults), new object[] { barcodeInfo, image });
-
-                        // show captured image in image viewer
-                        RecognizedImage = image;
-                    }
-                    else
-                    {
-                        // dispose captured image
-                        image.Dispose();
-                    }
-
-                    // capture next image 
-                    _barcodeReaderImageCaptureSource.CaptureAsync();
-                }
+                Invoke(new CaptureDevicesMonitor_CaptureDevicesChangedDelegate(ImagingCameraBarcodeScanner_CaptureDevicesChanged), sender, e);
             }
-            catch (Exception ex)
+            else
             {
-                ShowErrorMessageAsync(ex.Message);
+                List<ImageCaptureDevice> removedCameras = new List<ImageCaptureDevice>(e.RemovedDevices);
+
+                if (removedCameras.Contains(CaptureDevice))
+                {
+                    StopCapturing();
+                }
+
+                // add messages about changes
+                foreach (ImageCaptureDevice removedDevice in e.RemovedDevices)
+                    captureDeviceMonitorTextBox.AppendText(string.Format("Device '{0}' is disconnected.{1}", removedDevice.FriendlyName, Environment.NewLine));
+                foreach (ImageCaptureDevice addedDevice in e.AddedDevices)
+                    captureDeviceMonitorTextBox.AppendText(string.Format("Device '{0}' is connected.{1}", addedDevice.FriendlyName, Environment.NewLine));
+
+                InitCamerasComboBox();
+
+                UpdateUI();
+            }
+        }
+
+        private void BarcodeScanner_FrameScanFinished(object sender, FrameScanFinishedEventArgs e)
+        {
+            // if barcode recognized then
+            if (e.FoundBarcodes.Length > 0)
+            {
+                VintasoftImage image = new VintasoftImage((VintasoftBitmap)e.Frame.Clone(), true);
+
+                // show reader results
+                Invoke(new ShowRecognitionResultsDelegate(ShowRecognitionResults), new object[] { e.FoundBarcodes, image });
+
+                // show captured image in image viewer
+                RecognizedImage = image;
             }
         }
 

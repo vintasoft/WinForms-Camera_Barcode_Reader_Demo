@@ -252,24 +252,6 @@ namespace CameraBarcodeReaderDemo
             this.recognitionTypeComboBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.recognitionTypeComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.recognitionTypeComboBox.FormattingEnabled = true;
-            this.recognitionTypeComboBox.Items.AddRange(new object[] {
-            "Automatic Recognition",
-            "Threshold (Auto)",
-            "Threshold (50)",
-            "Threshold (100)",
-            "Threshold (150)",
-            "Threshold (200)",
-            "Threshold (250)",
-            "Threshold (300)",
-            "Threshold (350)",
-            "Threshold (400)",
-            "Threshold (450)",
-            "Threshold (500)",
-            "Threshold (550)",
-            "Threshold (600)",
-            "Threshold (650)",
-            "Threshold (700)",
-            "Threshold (750)"});
             this.recognitionTypeComboBox.Location = new System.Drawing.Point(286, 412);
             this.recognitionTypeComboBox.Name = "recognitionTypeComboBox";
             this.recognitionTypeComboBox.Size = new System.Drawing.Size(130, 21);
@@ -413,14 +395,14 @@ namespace CameraBarcodeReaderDemo
             // startBarcoderReadingToolStripMenuItem
             // 
             this.startBarcoderReadingToolStripMenuItem.Name = "startBarcoderReadingToolStripMenuItem";
-            this.startBarcoderReadingToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.startBarcoderReadingToolStripMenuItem.Size = new System.Drawing.Size(98, 22);
             this.startBarcoderReadingToolStripMenuItem.Text = "Start";
             this.startBarcoderReadingToolStripMenuItem.Click += new System.EventHandler(this.startBarcodeReadingButton_Click);
             // 
             // stopBarcodeReadingToolStripMenuItem
             // 
             this.stopBarcodeReadingToolStripMenuItem.Name = "stopBarcodeReadingToolStripMenuItem";
-            this.stopBarcodeReadingToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.stopBarcodeReadingToolStripMenuItem.Size = new System.Drawing.Size(98, 22);
             this.stopBarcodeReadingToolStripMenuItem.Text = "Stop";
             this.stopBarcodeReadingToolStripMenuItem.Click += new System.EventHandler(this.stopBarcodeReadingButton_Click);
             // 
@@ -436,7 +418,7 @@ namespace CameraBarcodeReaderDemo
             // 
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
             this.aboutToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F1;
-            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(135, 22);
             this.aboutToolStripMenuItem.Text = "About...";
             this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
             // 
