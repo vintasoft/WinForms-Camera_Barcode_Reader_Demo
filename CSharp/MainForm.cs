@@ -173,7 +173,7 @@ namespace CameraBarcodeReaderDemo
         #region 'File' menu
 
         /// <summary>
-        /// Handles the Click event of ExitToolStripMenuItem object.
+        /// Handles the Click event of exitToolStripMenuItem object.
         /// </summary>
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -186,7 +186,7 @@ namespace CameraBarcodeReaderDemo
         #region 'Help' menu
 
         /// <summary>
-        /// Handles the Click event of AboutToolStripMenuItem object.
+        /// Handles the Click event of aboutToolStripMenuItem object.
         /// </summary>
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -202,7 +202,7 @@ namespace CameraBarcodeReaderDemo
         #region Camera panel
 
         /// <summary>
-        /// Handles the SelectedIndexChanged event of CamerasComboBox object.
+        /// Handles the SelectedIndexChanged event of camerasComboBox object.
         /// </summary>
         private void camerasComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -212,7 +212,7 @@ namespace CameraBarcodeReaderDemo
         }
 
         /// <summary>
-        /// Handles the Click event of StartImageCapturingButton object.
+        /// Handles the Click event of startImageCapturingButton object.
         /// </summary>
         private void startImageCapturingButton_Click(object sender, EventArgs e)
         {
@@ -230,7 +230,7 @@ namespace CameraBarcodeReaderDemo
         }
 
         /// <summary>
-        /// Handles the Click event of StopImageCapturingButton object.
+        /// Handles the Click event of stopImageCapturingButton object.
         /// </summary>
         private void stopImageCapturingButton_Click(object sender, EventArgs e)
         {
@@ -241,7 +241,7 @@ namespace CameraBarcodeReaderDemo
         }
 
         /// <summary>
-        /// Handles the Click event of ConfigureCameraButton object.
+        /// Handles the Click event of configureCameraButton object.
         /// </summary>
         private void configureCameraButton_Click(object sender, EventArgs e)
         {
@@ -262,7 +262,7 @@ namespace CameraBarcodeReaderDemo
         #region Barcode Reader panel
 
         /// <summary>
-        /// Handles the SelectedIndexChanged event of RecognitionTypeComboBox object.
+        /// Handles the SelectedIndexChanged event of recognitionTypeComboBox object.
         /// </summary>
         private void recognitionTypeComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -279,7 +279,7 @@ namespace CameraBarcodeReaderDemo
         }
 
         /// <summary>
-        /// Handles the SelectedIndexChanged event of ScanBarcodeTypeComboBox object.
+        /// Handles the SelectedIndexChanged event of scanBarcodeTypeComboBox object.
         /// </summary>
         private void scanBarcodeTypeComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -300,7 +300,7 @@ namespace CameraBarcodeReaderDemo
         }
 
         /// <summary>
-        /// Handles the Click event of StartBarcodeReadingButton object.
+        /// Handles the Click event of startBarcodeReadingButton object.
         /// </summary>
         private void startBarcodeReadingButton_Click(object sender, EventArgs e)
         {
@@ -310,7 +310,7 @@ namespace CameraBarcodeReaderDemo
         }
 
         /// <summary>
-        /// Handles the Click event of StopBarcodeReadingButton object.
+        /// Handles the Click event of stopBarcodeReadingButton object.
         /// </summary>
         private void stopBarcodeReadingButton_Click(object sender, EventArgs e)
         {
@@ -320,7 +320,7 @@ namespace CameraBarcodeReaderDemo
         }
 
         /// <summary>
-        /// Handles the Click event of SaveImageAsButton object.
+        /// Handles the Click event of saveImageAsButton object.
         /// </summary>
         private void saveImageAsButton_Click(object sender, EventArgs e)
         {
@@ -572,11 +572,17 @@ namespace CameraBarcodeReaderDemo
 
         #region Barcode scanner
 
+        /// <summary>
+        /// Handles the ScanningException event of ImagingCameraBarcodeScanner object.
+        /// </summary>
         private void ImagingCameraBarcodeScanner_ScanningException(object sender, ExceptionEventArgs e)
         {
             ShowErrorMessageAsync(e.Exception.ToString());
         }
 
+        /// <summary>
+        /// Handles the ScanningStart event of ImagingCameraBarcodeScanner object.
+        /// </summary>
         private void ImagingCameraBarcodeScanner_ScanningStart(object sender, EventArgs e)
         {
             if (InvokeRequired)
@@ -594,6 +600,9 @@ namespace CameraBarcodeReaderDemo
             readerResultsTextBox.AppendText(Environment.NewLine);
         }
 
+        /// <summary>
+        /// Handles the ScanningStop event of ImagingCameraBarcodeScanner object.
+        /// </summary>
         private void ImagingCameraBarcodeScanner_ScanningStop(object sender, EventArgs e)
         {
             if (InvokeRequired)
@@ -642,6 +651,9 @@ namespace CameraBarcodeReaderDemo
             }
         }
 
+        /// <summary>
+        /// Handles the FrameScanFinished event of BarcodeScanner object.
+        /// </summary>
         private void BarcodeScanner_FrameScanFinished(object sender, FrameScanFinishedEventArgs e)
         {
             // if barcode recognized then
