@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("VintaSoft Camera Barcode Reader Demo")]
 [assembly: AssemblyDescription("Shows how to capture images from camera and recognize barcodes.")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("VintaSoft Llc.")]
+[assembly: AssemblyCompany("VintaSoft LLC")]
 [assembly: AssemblyProduct("VintaSoft Imaging .NET SDK")]
-[assembly: AssemblyCopyright("Copyright VintaSoft Llc. 2024")]
+[assembly: AssemblyCopyright("Copyright VintaSoft LLC 2024")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("12.5.6.1")]
-[assembly: AssemblyFileVersion("12.5.6.1")]
+[assembly: AssemblyVersion("12.5.7.1")]
+[assembly: AssemblyFileVersion("12.5.7.1")]
