@@ -16,6 +16,7 @@ using Vintasoft.Imaging.Media;
 using DemosCommonCode;
 using DemosCommonCode.Imaging.Codecs;
 using System.Threading;
+using System.ComponentModel;
 
 namespace CameraBarcodeReaderDemo
 {
@@ -88,7 +89,7 @@ namespace CameraBarcodeReaderDemo
             recognitionTypeComboBox.SelectedIndex = 0;            
         }
 
-      
+
         #endregion
 
 
@@ -98,6 +99,7 @@ namespace CameraBarcodeReaderDemo
         /// <summary>
         /// Gets or sets the preview image.
         /// </summary>
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public VintasoftImage PreviewImage
         {
             get
@@ -116,6 +118,7 @@ namespace CameraBarcodeReaderDemo
         /// <summary>
         /// Gets or sets the image with recognized barcodes.
         /// </summary>
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public VintasoftImage RecognizedImage
         {
             get
@@ -134,6 +137,7 @@ namespace CameraBarcodeReaderDemo
         /// <summary>
         /// Gets or sets the capture device.
         /// </summary>
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public ImageCaptureDevice CaptureDevice
         {
             get
