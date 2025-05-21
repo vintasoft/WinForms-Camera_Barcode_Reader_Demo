@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Drawing;
 using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 
 using Vintasoft.Barcode;
@@ -15,8 +17,6 @@ using Vintasoft.Imaging.Media;
 
 using DemosCommonCode;
 using DemosCommonCode.Imaging.Codecs;
-using System.Threading;
-using System.ComponentModel;
 
 namespace CameraBarcodeReaderDemo
 {
@@ -216,7 +216,7 @@ namespace CameraBarcodeReaderDemo
         }
 
         /// <summary>
-        /// Handles the Click event of startImageCapturingButton object.
+        /// Starts the image capturing from camera.
         /// </summary>
         private void startImageCapturingButton_Click(object sender, EventArgs e)
         {
@@ -234,7 +234,7 @@ namespace CameraBarcodeReaderDemo
         }
 
         /// <summary>
-        /// Handles the Click event of stopImageCapturingButton object.
+        /// Stops the image capturing from camera.
         /// </summary>
         private void stopImageCapturingButton_Click(object sender, EventArgs e)
         {
@@ -245,7 +245,7 @@ namespace CameraBarcodeReaderDemo
         }
 
         /// <summary>
-        /// Handles the Click event of configureCameraButton object.
+        /// Configures the camera.
         /// </summary>
         private void configureCameraButton_Click(object sender, EventArgs e)
         {
@@ -266,7 +266,7 @@ namespace CameraBarcodeReaderDemo
         #region Barcode Reader panel
 
         /// <summary>
-        /// Handles the SelectedIndexChanged event of recognitionTypeComboBox object.
+        /// Recognition type is changed.
         /// </summary>
         private void recognitionTypeComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -283,7 +283,7 @@ namespace CameraBarcodeReaderDemo
         }
 
         /// <summary>
-        /// Handles the SelectedIndexChanged event of scanBarcodeTypeComboBox object.
+        /// Scan barcode type is changed.
         /// </summary>
         private void scanBarcodeTypeComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -304,7 +304,7 @@ namespace CameraBarcodeReaderDemo
         }
 
         /// <summary>
-        /// Handles the Click event of startBarcodeReadingButton object.
+        /// Starts the barcode reading from captured image.
         /// </summary>
         private void startBarcodeReadingButton_Click(object sender, EventArgs e)
         {
@@ -314,7 +314,7 @@ namespace CameraBarcodeReaderDemo
         }
 
         /// <summary>
-        /// Handles the Click event of stopBarcodeReadingButton object.
+        /// Stops the barcode reading from captured image.
         /// </summary>
         private void stopBarcodeReadingButton_Click(object sender, EventArgs e)
         {
