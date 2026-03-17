@@ -15,8 +15,8 @@ using Vintasoft.Imaging;
 using Vintasoft.Imaging.Drawing;
 using Vintasoft.Imaging.Media;
 
-using DemosCommonCode;
-using DemosCommonCode.Imaging.Codecs;
+using CommonCode;
+using CommonCode.Imaging.Codecs;
 
 namespace CameraBarcodeReaderDemo
 {
